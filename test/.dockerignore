@@ -1,0 +1,5 @@
+.git
+.gitignore
+.docker-cache
+kakaotalk-wine-backups
+*.md.bak

@@ -2,7 +2,7 @@
 
 Ubuntu에서 카카오톡 Windows 버전을 Wine으로 돌리기 위한 설치 절차. 사람이 따라 해도 되고 Claude Code / Codex 같은 에이전트한테 통째로 맡겨도 된다.
 
-검증 환경: Ubuntu 24.04 + KakaoTalk 26.4.0.5128 + wine-11.9 (Kron4ek).
+검증 환경: Ubuntu 24.04 + KakaoTalk + wine-11.9 (Kron4ek).
 
 ## Clone
 
@@ -23,3 +23,7 @@ clone한 디렉토리에서 Claude Code 또는 Codex CLI를 열고 그대로 복
 KAKAOTALK_WINE_INSTALL.md를 읽고 절차대로 카카오톡을 설치해줘.
 경로는 $HOME 기준, sudo 단계는 승인 받고, 끝나면 6절 성공 기준 통과 여부를 보고해.
 ```
+
+## 검증 (선택)
+
+새 PC 없이 절차가 깨끗한 환경에서 깨지지 않는지 확인하고 싶으면 [`test/`](./test/) 디렉토리의 도커 환경 사용. 자세한 내용은 [`test/README.md`](./test/README.md).

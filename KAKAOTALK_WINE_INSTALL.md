@@ -378,3 +378,7 @@ export WINE_RUNNER="$HOME/.local/share/wine-runners/wine-11.9-amd64-wow64"
 - `pgrep -af 'KakaoTalk|wineserver|wine'`에서 runner 경로가 `$HOME/.local/share/wine-runners/wine-11.9-amd64-wow64` 아래로 확인됨
 - DLL 오류 창이 재발하지 않음
 
+## 7. 도커로 검증 (선택)
+
+새 PC 없이 이 절차의 회귀를 빠르게 확인하고 싶다면 [`test/`](./test/) 디렉토리에 깨끗한 Ubuntu 24.04 컨테이너에서 절차를 재현하는 도커 환경이 있다. 사용법은 [`test/README.md`](./test/README.md) 참조.
+
