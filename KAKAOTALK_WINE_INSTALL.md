@@ -142,10 +142,29 @@ export WINEARCH=win64
 "$WINE_RUNNER/bin/winecfg" -v win10
 
 winetricks -q cjkfonts gdiplus riched20 vcrun2019
+
+# 중요: winetricks(특히 vcrun2019)는 설치 도중 prefix의 Windows 버전을
+# win7(=6.1 / build 7601)로 되돌리고 그대로 둔다. KakaoTalk 26.x는
+# Windows 7/8/8.1을 거부하므로(공식 지원 종료, 2024-04 / 3.8.0까지),
+# winetricks 다음에 반드시 win10으로 다시 고정한다. 이 한 줄이 빠지면
+# 3.5 설치 단계에서 "Unable to install this version of KakaoTalk on your PC"
+# 오류 창이 뜨고 설치가 중단된다.
+"$WINE_RUNNER/bin/winecfg" -v win10
 "$WINE_RUNNER/bin/wineboot" -u
+
+# Windows 버전이 실제로 win10인지 검증한다.
+# 정상: ProductName="Microsoft Windows 10", CurrentVersion 6.3 / CurrentBuild 19045
+# 비정상(win7): CurrentVersion 6.1, CurrentBuild 7601, CSDVersion="Service Pack 1"
+grep -m1 '"ProductName"="Microsoft Windows 10"' "$WINEPREFIX/system.reg" \
+  && echo "winver OK: win10" \
+  || { echo "winver FAIL: win10 아님 -> winecfg -v win10 재실행 필요"; exit 1; }
 ```
 
 `vcrun2019` 설치 중 `ucrtbase.dll`이 이미 있다는 경고가 나올 수 있다. 명령이 0으로 끝나면 계속 진행한다.
+
+> 검증 메모(2026-06-15 재현): `winecfg -v win10`을 winetricks **전에만** 실행하면
+> winetricks가 prefix를 win7로 되돌려 3.5에서 설치가 거부된다. 위처럼 winetricks
+> **뒤에** win10을 다시 고정한 후에야 설치가 성공했다.
 
 ### 3.5 KakaoTalk 설치
 
@@ -184,6 +203,23 @@ Kakao CDN installer는 최신 버전으로 바뀔 수 있다. 위 SHA256은 이 
 "$WINE" "$KAKAOTALK_SETUP"
 ```
 
+설치 단계 주의사항:
+
+- 설치 프로그램은 GUI를 초기화하므로 **유효한 X 디스플레이**가 필요하다. `DISPLAY`가
+  실제 살아 있는 디스플레이를 가리키는지 먼저 확인한다. (`:0`이 아니라 `:1`인 경우도 있다.)
+
+  ```bash
+  export DISPLAY="${DISPLAY:-:0}"
+  timeout 5 xdpyinfo >/dev/null 2>&1 && echo "DISPLAY=$DISPLAY OK" \
+    || echo "DISPLAY 도달 불가 -> 올바른 디스플레이(:0/:1 등)로 export 후 재시도"
+  ```
+
+- 설치 중 **"Unable to install this version of KakaoTalk on your PC. Please reinstall
+  with the newly downloaded installation file"** 오류 창이 뜨면, 이것은 DLL 문제가 아니라
+  **prefix의 Windows 버전이 win10이 아니라서**(주로 win7로 되돌아가 있음) installer가
+  스스로 거부하는 것이다. 3.4의 win10 재고정 + 검증을 먼저 수행하고 다시 설치한다.
+  (installer 버전 자체는 동일한 `26.4.0.5128`이어도 이 오류가 난다.)
+
 ### 3.6 런처 생성
 
 이 런처가 핵심이다. `exec wine ...`처럼 시스템 Wine을 호출하면 DLL 오류가 재발할 수 있다.
@@ -195,13 +231,47 @@ cat > "$HOME/.local/bin/kakaotalk-wine" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 export WINEPREFIX="${WINEPREFIX:-$HOME/.wine-kakaotalk-x64}"
-exec "$HOME/.local/share/wine-runners/wine-11.9-amd64-wow64/bin/wine" "$WINEPREFIX/drive_c/Program Files/Kakao/KakaoTalk/KakaoTalk.exe" "$@"
+WINE="$HOME/.local/share/wine-runners/wine-11.9-amd64-wow64/bin/wine"
+# win64 prefix에 32-bit installer를 깔면 실제 설치 경로는 "Program Files (x86)"다.
+# 두 경로를 모두 시도해 실제 존재하는 KakaoTalk.exe를 사용한다.
+KT="$WINEPREFIX/drive_c/Program Files (x86)/Kakao/KakaoTalk/KakaoTalk.exe"
+[ -f "$KT" ] || KT="$WINEPREFIX/drive_c/Program Files/Kakao/KakaoTalk/KakaoTalk.exe"
+exec "$WINE" "$KT" "$@"
 EOF
 
 chmod +x "$HOME/.local/bin/kakaotalk-wine"
 ```
 
+> 경로 메모: 이 PC의 win32 installer는 win64 prefix에서
+> `drive_c/Program Files (x86)/Kakao/KakaoTalk/KakaoTalk.exe`에 설치됐다.
+> 런처는 `Program Files (x86)`을 먼저 보고 없으면 `Program Files`로 폴백한다.
+
 ### 3.7 데스크톱 바로가기 생성
+
+우리는 `.desktop`을 수동 생성하므로 Wine의 자동 아이콘 추출이 일어나지 않는다.
+이때 `Icon=`이 설치돼 있지 않은 이름(예: 자동 생성용 `DDB7_KakaoTalk.0`)을 가리키면
+런처에 **톱니(기어) 모양 기본 아이콘**이 뜬다. 따라서 먼저 KakaoTalk이 포함한 노란
+앱 아이콘을 hicolor 테마에 `kakaotalk`이라는 이름으로 설치하고, `.desktop`에서는
+`Icon=kakaotalk`을 쓴다.
+
+```bash
+KT="$HOME/.wine-kakaotalk-x64/drive_c/Program Files (x86)/Kakao/KakaoTalk"
+# 노란색 카카오톡 앱 아이콘 원본 (회색 logout용 .ico가 아니라 이 PNG가 컬러 아이콘)
+ICON_SRC="$KT/skin/default/image/2.0/x2.0/setting_img_talkappicon.png"
+
+python3 - "$ICON_SRC" "$HOME/.local/share/icons/hicolor" <<'PY'
+import sys, os
+from PIL import Image
+src, base = sys.argv[1], sys.argv[2]
+master = Image.open(src).convert("RGBA")
+for s in (16, 24, 32, 48, 64, 128, 256):
+    d = os.path.join(base, f"{s}x{s}", "apps"); os.makedirs(d, exist_ok=True)
+    master.resize((s, s), Image.LANCZOS).save(os.path.join(d, "kakaotalk.png"))
+print("installed kakaotalk icon into", base)
+PY
+
+gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+```
 
 `.desktop` 파일의 `Exec`는 shell variable을 확장하지 않으므로 생성 시점에 `$HOME`을 실제 경로로 풀어 쓴다.
 
@@ -212,6 +282,7 @@ cat > "$HOME/.local/share/applications/kakaotalk-wine.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=KakaoTalk (Wine)
+Icon=kakaotalk
 Exec=$HOME/.local/bin/kakaotalk-wine
 Terminal=false
 Categories=Network;Chat;
@@ -243,8 +314,8 @@ Name=KakaoTalk
 Exec=$HOME/.local/bin/kakaotalk-wine
 Type=Application
 StartupNotify=true
-Path=$HOME/.wine-kakaotalk-x64/dosdevices/c:/Program Files/Kakao/KakaoTalk
-Icon=DDB7_KakaoTalk.0
+Path=$HOME/.wine-kakaotalk-x64/dosdevices/c:/Program Files (x86)/Kakao/KakaoTalk
+Icon=kakaotalk
 StartupWMClass=kakaotalk.exe
 Categories=Network;Chat;
 EOF
@@ -313,6 +384,29 @@ grep -n 'DisplayName"="KakaoTalk"' "$HOME/.wine-kakaotalk-x64/system.reg" || tru
 이 PC에서 확인한 버전은 `26.4.0.5128`이다.
 
 ## 5. 장애 대응
+
+### "Unable to install this version of KakaoTalk on your PC" (설치 거부)
+
+3.5 설치 중 이 오류 창이 뜨고 `KakaoTalk.exe`가 어디에도 안 깔리면, prefix의 Windows
+버전이 win10이 아니라 win7로 되돌아간 것이다. winetricks(vcrun2019 등)가 winver를
+바꿔 놓는 것이 원인이며, installer 버전(`26.4.0.5128`) 자체와는 무관하다.
+
+```bash
+export WINEPREFIX="$HOME/.wine-kakaotalk-x64"
+export WINE_RUNNER="$HOME/.local/share/wine-runners/wine-11.9-amd64-wow64"
+
+# 현재 보고되는 Windows 버전 확인 (6.1/7601=win7, 10.0/19045/Windows 10=win10)
+grep -E '"ProductName"|"CurrentVersion"|"CurrentBuild"' "$WINEPREFIX/system.reg" \
+  | grep -iv 'visual c++\|wine mono' | head
+
+# win10으로 다시 고정 후 설치 재시도
+"$WINE_RUNNER/bin/winecfg" -v win10
+"$WINE_RUNNER/bin/wineserver" -w
+```
+
+참고로 설치 프로그램은 유효한 X 디스플레이가 없으면 GUI 초기화에 실패해 즉시
+종료(exit 2)되기도 한다. `DISPLAY`가 살아 있는 디스플레이를 가리키는지(`:0`/`:1`)
+`xdpyinfo`로 확인한다.
 
 ### DLL 오류가 다시 발생할 때
 
