@@ -7,6 +7,8 @@ export KAKAOTALK_PREFIX="${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}"
 export KAKAOTALK_CACHE="${KAKAOTALK_CACHE:-$HOME/.cache/kakaotalk-installer}"
 export KAKAOTALK_INSTALL_DESKTOP="${KAKAOTALK_INSTALL_DESKTOP:-1}"
 
+readonly KAKAOTALK_TOOLKIT_VERSION="0.0.0"
+
 readonly WINE_BIN="/opt/wine-staging/bin/wine"
 readonly WINEBOOT_BIN="/opt/wine-staging/bin/wineboot"
 readonly WINECFG_BIN="/opt/wine-staging/bin/winecfg"
@@ -366,6 +368,9 @@ EOF
     fi
 }
 
+# self_check는 "조건 && [OK] 출력 || { [FAIL] 출력; 카운트 }" 패턴을 의도적으로 쓴다.
+# echo가 실패하는 경우는 없으므로 SC2015의 A && B || C 경고는 여기서 오탐이다.
+# shellcheck disable=SC2015
 self_check() {
     local failures=0
     local kakao_exe=""
@@ -423,6 +428,7 @@ self_check() {
 }
 
 main() {
+    log "ubuntu-kakaotalk v$KAKAOTALK_TOOLKIT_VERSION"
     validate_configuration
     check_system_dependencies
     check_forbidden_prefix
