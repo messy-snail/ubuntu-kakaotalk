@@ -83,8 +83,9 @@ echo "$XMODIFIERS"
 ibus version
 ```
 
-래퍼는 컨테이너에 `XMODIFIERS=@im=ibus`와 X 소켓을 전달한다. 별도 IBus DBus 소켓은
-마운트하지 않는다.
+래퍼는 컨테이너에 `XMODIFIERS=@im=ibus`, `LANG=C.UTF-8`, `LC_ALL=C.UTF-8`과 X 소켓을
+전달한다. UTF-8 locale이 아닌 컨테이너에서는 입력 직후 Wine이 멈출 수 있다. 별도 IBus
+DBus 소켓은 마운트하지 않는다.
 
 ## Docker에서 화면·GPU·오디오가 안 됨
 

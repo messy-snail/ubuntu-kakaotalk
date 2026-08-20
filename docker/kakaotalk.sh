@@ -101,6 +101,8 @@ run_container() {
         --init
         --ipc=host
         -e "DISPLAY=$DISPLAY"
+        -e "LANG=C.UTF-8"
+        -e "LC_ALL=C.UTF-8"
         -e "XMODIFIERS=@im=ibus"
         -v /tmp/.X11-unix:/tmp/.X11-unix:ro
         -v "$DATA_DIR:/home/kakao/.wine-kakaotalk"

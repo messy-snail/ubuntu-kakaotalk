@@ -64,6 +64,8 @@ USER kakao
 ENV WINEPREFIX=/home/kakao/.wine-kakaotalk \
     WINEARCH=win64 \
     WINEDEBUG=-all \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
     XMODIFIERS=@im=ibus
 
 ENTRYPOINT ["/usr/local/bin/kakaotalk-entrypoint"]

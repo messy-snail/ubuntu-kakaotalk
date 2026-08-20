@@ -28,8 +28,10 @@ sudo usermod -aG docker "$USER"
 `~/.local/share/kakaotalk-docker`로 복사한다. 이후 실행에서는 이 디렉터리를 그대로
 사용하므로 로그인과 사용자 데이터가 유지된다.
 
-카카오톡 로그인 후 `Settings → Display → Font → 나눔고딕`을 선택해야 입력창 한글이
-정상 표시된다.
+> **첫 실행 필수 설정:** KakaoTalk에 로그인한 뒤
+> `Settings → Display → Font → 나눔고딕`을 선택한다. 이 설정 전에는 대화창 입력 한글이
+> 깨지거나 입력 직후 Wine이 멈출 수 있다. 선택 결과는 영속 데이터에 저장되므로 이후
+> 컨테이너 실행에서도 유지된다.
 
 ## 관리 명령
 
@@ -46,6 +48,7 @@ sudo usermod -aG docker "$USER"
 ## 호스트 연동
 
 래퍼는 실행 중에만 현재 로컬 사용자에게 X 접근을 허용하고 종료 시 복구한다. IBus용
-`XMODIFIERS=@im=ibus`, PulseAudio 소켓, `/dev/dri` 장치와 장치 그룹을 자동 전달한다.
+`XMODIFIERS=@im=ibus`와 UTF-8 locale, PulseAudio 소켓, `/dev/dri` 장치와 장치 그룹을
+자동 전달한다. UTF-8 locale은 Wine XIM에서 한글 입력을 처리하는 데 필요하다.
 호스트의 NVIDIA GLVND 강제 환경변수는 컨테이너에 전달하지 않으며 컨테이너는 Mesa를
 사용한다.

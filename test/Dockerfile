@@ -41,7 +41,9 @@ RUN chmod +x /usr/local/lib/kakaotalk/install.sh \
              /home/kakao/container-install.sh
 
 USER kakao
-ENV HOME=/home/kakao
+ENV HOME=/home/kakao \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
 WORKDIR /home/kakao
 
 ENTRYPOINT ["/home/kakao/container-install.sh"]

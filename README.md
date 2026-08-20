@@ -49,6 +49,10 @@ KAKAOTALK_PREFIX="$HOME/.wine-kakaotalk-test" ~/.local/bin/kakaotalk-wine
 ./docker/kakaotalk.sh run
 ```
 
+> **첫 실행 필수 설정:** KakaoTalk에 로그인한 뒤
+> `Settings → Display → Font → 나눔고딕`을 선택한다. 이 설정 전에는 대화창 입력 한글이
+> 깨지거나 입력 직후 Wine이 멈출 수 있다.
+
 로그인과 대화 데이터는 `~/.local/share/kakaotalk-docker`에 보존된다. 자세한 사용법은
 [`docker/README.md`](./docker/README.md)를 참고한다.
 
