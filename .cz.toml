@@ -9,3 +9,14 @@ major_version_zero = false
 version_files = [
     "install.sh:KAKAOTALK_TOOLKIT_VERSION",
 ]
+
+# cz_conventional_commits는 feat/fix/refactor/perf만 changelog에 넣는다.
+# commit_parser와 changelog_pattern은 플러그인 클래스 속성이라 여기서 못 바꾸므로
+# docs/ci 변경을 릴리즈 노트에 남기려면 해당 섹션을 손으로 덧붙인다.
+change_type_order = ["BREAKING CHANGE", "Features", "Bug Fixes", "Performance", "Refactor"]
+
+[tool.commitizen.change_type_map]
+feat = "Features"
+fix = "Bug Fixes"
+refactor = "Refactor"
+perf = "Performance"
