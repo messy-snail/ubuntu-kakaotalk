@@ -78,15 +78,15 @@ grant_x_access() {
 }
 
 append_graphics_devices() {
-    local -n arguments="$1"
+    local -n args_ref="$1"
     local device gid known_gids=" "
 
     for device in /dev/dri/card* /dev/dri/renderD*; do
         [ -e "$device" ] || continue
-        arguments+=(--device "$device")
+        args_ref+=(--device "$device")
         gid="$(stat -c '%g' "$device")"
         if [[ "$known_gids" != *" $gid "* ]]; then
-            arguments+=(--group-add "$gid")
+            args_ref+=(--group-add "$gid")
             known_gids+="$gid "
         fi
     done
