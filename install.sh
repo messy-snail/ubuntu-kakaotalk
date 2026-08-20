@@ -203,7 +203,7 @@ configure_fonts() {
     local fonts='HKLM\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
     local name
 
-    log "NanumBarunGothic 복사 및 Wine 글꼴 매핑"
+    log "Nanum 글꼴 복사 및 Wine 글꼴 매핑"
     mkdir -p "$windows_fonts"
     install -m 0644 /usr/share/fonts/truetype/nanum/NanumBarunGothic.ttf "$windows_fonts/"
     install -m 0644 /usr/share/fonts/truetype/nanum/NanumGothic.ttf "$windows_fonts/"
