@@ -2,7 +2,7 @@
 
 # ubuntu-kakaotalk
 
-**Automated installer and Docker environment for running Windows KakaoTalk on Ubuntu 24.04 via WineHQ staging**
+**Run the Windows build of KakaoTalk on Ubuntu 24.04 through WineHQ staging**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Release](https://img.shields.io/github/v/release/messy-snail/ubuntu-kakaotalk?color=blue)](https://github.com/messy-snail/ubuntu-kakaotalk/releases/latest)
@@ -23,53 +23,36 @@ KakaoTalk is proprietary software owned by Kakao Corp. This repository **only au
 install and launch procedure** — it does not redistribute any KakaoTalk binary and is not
 affiliated with Kakao.
 
-> [!WARNING]
-> Do not install `winetricks gdiplus`, `riched20`, or `vcrun2019`. These DLL verbs cause blank
-> chat windows and repeated `Encountered an improper argument.` dialogs. This repository uses
-> only the font-only `cjkfonts` verb.
+## Three ways to install
 
-## What it does
+| | Method | Pick this if | Command |
+|---|---|---|---|
+| 🤖 | **Let an agent do it** | You want the terminal work done for you | Copy the prompt below |
+| 🔧 | **Install directly** | You want it on the host, now | `./install.sh` |
+| 📦 | **Docker** | You want your host left alone | `./docker/kakaotalk.sh build` |
 
-- **Clean prefix** — a win64 prefix in Windows 10 mode with `cjkfonts` as the only winetricks
-  verb. The DLL verbs that break chat rendering are excluded from the start.
-- **Nanum font wiring** — copies NanumGothic, NanumBarunGothic, and NanumMyeongjo out of the
-  host's `fonts-nanum` package into the prefix, then wires up two distinct layers. When Wine
-  substitutes a Windows font request (`MS Shell Dlg`, `Segoe UI`, `맑은 고딕`) it draws with
-  NanumBarunGothic; when KakaoTalk asks for `나눔고딕`, the family you pick inside the app, it
-  resolves to NanumGothic. `FontSubstitutes` and `FontLink\SystemLink` handle the former,
-  `Fonts\Replacements` the latter.
-- **Fetches everything it can** — downloads the KakaoTalk installer straight from the official
-  CDN and caches it under `~/.cache/kakaotalk-installer`. Wine Gecko, Mono, and `cjkfonts` are
-  fetched automatically too.
-- **Integrity checks** — Wine Gecko and Mono are matched against pinned SHA-256 digests. The
-  KakaoTalk installer is validated for size and a PE (`MZ`) header before it runs; its hash is
-  printed rather than pinned, because the CDN keeps serving newer builds.
-- **Non-destructive** — never deletes or resets a prefix. If a prefix already contains the
-  forbidden DLLs, the script stops instead of trying to repair it and points you at a new path.
-- **Desktop integration** — a retrying launcher, a 256px icon extracted from the `.exe`, and
-  desktop entries for the app and the `kakaoopen://` protocol handler.
-- **Self-check** — after install it verifies the Wine version, prefix mode, absence of forbidden
-  verbs, fonts, the KakaoTalk binary, the launcher, and desktop integration, failing on any miss.
-- **Docker image and regression harness** — a daily-driver image that persists login and chat
-  data outside the image, plus a clean-container harness that reruns the whole `install.sh`.
+Whichever you pick, the KakaoTalk installer is fetched from the official CDN automatically and
+runs in silent mode. **There is no `Next` button to click.**
 
-## Verified environment
+### 🤖 1. Let an agent do it
 
-| Item | Value |
-|---|---|
-| OS | Ubuntu 24.04.4 LTS (amd64 + i386) |
-| Wine | WineHQ staging 11.15, `/opt/wine-staging/bin/wine` |
-| Windows mode | Windows 10, win64 prefix |
-| winetricks | `cjkfonts` only |
-| Gecko / Mono | 2.47.4 (x86, x86_64) / 11.2.0 (x86) |
-| KakaoTalk | 26.7.1.5263 |
-| Default prefix | `~/.wine-kakaotalk-clean` |
+![effort: lowest](https://img.shields.io/badge/effort-lowest-brightgreen) ![sudo: agent runs it](https://img.shields.io/badge/sudo-agent_runs_it-blue)
 
-These versions are a **known-good reference point, not a hard pin** (verified 2026-08-20).
-WineHQ staging is a rolling package and the KakaoTalk CDN serves newer installers over time, so
-later versions are expected to work.
+Hand it to a coding agent such as Codex or Claude Code. From the repository root, ask:
 
-## Quick start
+```text
+Read README.md and KAKAOTALK_WINE_INSTALL.md, then install with ./install.sh.
+Show me any sudo commands first, and do not delete an existing Wine prefix.
+When you are done, report the self-check results and whether I still need to set
+Display → Font → 나눔고딕.
+```
+
+This just runs `install.sh` on your behalf, so the result is identical to option 2. The
+difference is that the agent also handles the `sudo` prerequisites.
+
+### 🔧 2. Install directly
+
+![effort: moderate](https://img.shields.io/badge/effort-moderate-yellow) ![sudo: you run it](https://img.shields.io/badge/sudo-you_run_it-orange)
 
 ```bash
 git clone https://github.com/messy-snail/ubuntu-kakaotalk.git
@@ -77,105 +60,83 @@ cd ubuntu-kakaotalk
 ./install.sh
 ```
 
-The KakaoTalk installer, Wine Gecko/Mono, and `cjkfonts` are downloaded for you. The only
-things you need up front are apt packages — WineHQ staging, winetricks, and the `fonts-nanum`
-family. Those need `sudo`, so the script never installs them on your behalf: it prints the exact
-commands and exits, and you rerun `./install.sh` afterwards. The full list and procedure live in
-[`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md) (Korean).
+The only things you need up front are apt packages — WineHQ staging, winetricks, and the
+`fonts-nanum` family. Those need `sudo`, so the script never runs them for you: **if something
+is missing it prints the exact commands and stops.** Run them, then run `./install.sh` again.
 
-The Docker path has no such split. `install.sh` runs during the image build, so the apt packages
-and KakaoTalk itself are all prepared inside the image.
+Wine Gecko, Mono, `cjkfonts`, and the KakaoTalk installer are all fetched automatically. The
+full procedure is in [`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md).
 
-Run it:
+### 📦 3. Docker
 
-```bash
-~/.local/bin/kakaotalk-wine
-```
-
-Searching for `KakaoTalk` in your desktop application menu launches the same script.
-
-## Required in-app setting
-
-> [!IMPORTANT]
-> After signing in, you must select this inside KakaoTalk:
->
-> ```text
-> Settings → Display → Font → 나눔고딕 (NanumGothic)
-> ```
->
-> It is the `Display` tab, not `Settings → Chat`. Without it, Korean text in the message input
-> box can render as garbage or freeze Wine right after you type, even when the chat body looks
-> fine.
-
-## Docker
+![effort: moderate](https://img.shields.io/badge/effort-moderate-yellow) ![isolation: host untouched](https://img.shields.io/badge/isolation-host_untouched-brightgreen)
 
 ```bash
 ./docker/kakaotalk.sh build
 ./docker/kakaotalk.sh run
 ```
 
-The first run copies the image's prefix template to `~/.local/share/kakaotalk-docker` and every
-later run reuses that directory, so your login session and chat data survive a rebuild. The
-**required in-app setting** above applies to Docker as well.
+Everything including the apt packages is prepared inside the image, so there is no `sudo` step —
+you only need access to the Docker daemon. Your login session and chat data live outside the
+image in `~/.local/share/kakaotalk-docker`, so they survive a rebuild.
 
-Management commands (`shell`, `update`, `clean`) and host integration details are in
-[`docker/README.md`](./docker/README.md) (Korean).
+See [`docker/README.md`](./docker/README.md) for details.
 
-## Regression check
-
-```bash
-./test/docker-verify.sh build
-./test/docker-verify.sh run
-```
-
-Runs the root `install.sh` from scratch in a clean Ubuntu 24.04 container to confirm the docs and
-the automation still describe the same procedure. It does not mount your host Wine prefix. See
-[`test/README.md`](./test/README.md) (Korean) for the checks and limitations.
-
-## Environment variables
-
-| Name | Default | Purpose |
-|---|---|---|
-| `KAKAOTALK_PREFIX` | `$HOME/.wine-kakaotalk-clean` | Wine prefix used to install and run |
-| `KAKAOTALK_CACHE` | `$HOME/.cache/kakaotalk-installer` | KakaoTalk installer cache |
-| `KAKAOTALK_INSTALL_DESKTOP` | `1` | Set to `0` to skip the icon and desktop entries |
-| `KAKAOTALK_DOCKER_DATA` | `$HOME/.local/share/kakaotalk-docker` | Docker persistent data path |
-
-Pass the same value to both install and launch to keep prefixes separate.
+## Running it
 
 ```bash
-KAKAOTALK_PREFIX="$HOME/.wine-kakaotalk-test" ./install.sh
-KAKAOTALK_PREFIX="$HOME/.wine-kakaotalk-test" ~/.local/bin/kakaotalk-wine
+~/.local/bin/kakaotalk-wine
 ```
+
+Searching for `KakaoTalk` in your desktop app menu launches the same wrapper. For Docker, use
+`./docker/kakaotalk.sh run`.
+
+## Required in-app setting
+
+> [!IMPORTANT]
+> After logging in, you must pick this inside KakaoTalk:
+>
+> ```text
+> Settings → Display → Font → 나눔고딕
+> ```
+>
+> It is the `Display` tab, not `Settings → Chat`. Until you set it, Korean text in the compose
+> box can render as garbage or freeze Wine on the first keystroke, even when the chat body looks
+> fine. This applies to every install method.
+
+## Known issues
+
+| Symptom | Cause |
+|---|---|
+| Blank chat room with a repeated `Encountered an improper argument.` dialog | winetricks `gdiplus`, `riched20`, `vcrun2019`. This repository never installs them |
+| Only the compose box shows broken Korean | The **required in-app setting** above was not applied |
+| Docker install, but the font mapping is broken | The v1.0.0 image was built under a non-UTF-8 locale. Fixed in v1.0.1 |
+| First launch dies instantly with `c0000409` | The launcher retries automatically, up to three times |
+
+> [!WARNING]
+> Do not install `winetricks gdiplus`, `riched20`, or `vcrun2019`. They are the direct cause of
+> the blank chat window. This repository uses only the font-only `cjkfonts` verb.
+
+Diagnostic commands, recovery steps, and the hypotheses that were investigated and **ruled out**
+(Wine build, GPU, DLL overrides, WIC, WebView2, and more) are in
+[`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md).
 
 ## Documentation
 
-| Document | Read it when |
+| Document | When to read it |
 |---|---|
-| [`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md) | Following the full procedure, `sudo` commands, and manual verification by hand |
-| [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) | Blank chat windows, broken Korean input, `c0000409`, GPU / audio / input-method problems |
-| [`docker/README.md`](./docker/README.md) | Using Docker day to day, persistent data, host integration |
-| [`test/README.md`](./test/README.md) | Verifying a change in a clean environment |
-| [`CHANGELOG.md`](./CHANGELOG.md) | Checking what changed between releases |
+| [`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md) | Walking the install by hand, or changing environment variables |
+| [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) | Something broke |
+| [`docker/README.md`](./docker/README.md) | Running it under Docker |
+| [`test/README.md`](./test/README.md) | Regression-testing a change |
+| [`CHANGELOG.md`](./CHANGELOG.md) | What changed between releases |
 
-Detailed documents are written in Korean. `TROUBLESHOOTING.md` also records the **hypotheses that
-were ruled out** (Wine build, GPU, DLL overrides, WIC, WebView2, and more) — worth reading before
-you go down the same path again.
-
-## Letting an agent install it
-
-You can hand this to a coding agent such as Codex or Claude Code. From the repository root:
-
-```text
-Read README.md and KAKAOTALK_WINE_INSTALL.md, then install with ./install.sh.
-Show me any sudo commands before running them, and never delete an existing Wine prefix.
-When you are done, report the self-check results and whether I still need to set
-Display → Font → 나눔고딕.
-```
+The verified baseline is Ubuntu 24.04.4 LTS + WineHQ staging 11.15 + KakaoTalk 26.7.1.5263
+(re-verified 2026-08-21). These are not hard pins — later versions are allowed.
 
 ## Contributing
 
-Issues and pull requests are welcome. Bug reports narrow down much faster with this attached:
+Issues and PRs are welcome. Including this in a bug report narrows things down much faster:
 
 ```bash
 /opt/wine-staging/bin/wine --version
@@ -183,21 +144,20 @@ cat "${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}/winetricks.log"
 grep -m1 '"ProductName"=' "${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}/system.reg"
 ```
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and versions are
-managed with [commitizen](https://commitizen-tools.github.io/commitizen/).
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and versioning is
+handled by [commitizen](https://commitizen-tools.github.io/commitizen/).
 
 ```bash
-uv run --no-project cz commit                    # write a commit
-shellcheck -x install.sh docker/*.sh test/*.sh   # same lint as CI
+uv run --no-project cz commit                     # write a commit
+shellcheck -x install.sh docker/*.sh test/*.sh    # the same lint CI runs
 ```
 
 ## License and notices
 
-The scripts and documentation in this repository are released under the
-[MIT License](./LICENSE).
+The scripts and documentation in this repository are [MIT licensed](./LICENSE).
 
-KakaoTalk is proprietary software owned by Kakao Corp., and the related trademarks belong to
+KakaoTalk is proprietary software owned by Kakao Corp., and the associated trademarks belong to
 Kakao. This repository neither bundles nor redistributes KakaoTalk; it only automates downloading
-it from the official CDN and installing it. It is not sponsored or endorsed by Kakao, and your
-use of KakaoTalk is governed by Kakao's terms of service. Wine is a work of the
+it from the official CDN and installing it. It is not sponsored or endorsed by Kakao. Your use of
+KakaoTalk is governed by Kakao's terms of service. Wine is a work of the
 [WineHQ project](https://www.winehq.org/) under its own license.
