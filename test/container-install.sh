@@ -7,13 +7,23 @@ export KAKAOTALK_INSTALL_DESKTOP=0
 
 readonly INSTALLER="/usr/local/lib/kakaotalk/install.sh"
 
-"$INSTALLER"
+# 일부러 비 UTF-8 로케일로 설치한다. Wine은 명령줄 인자를 로케일 인코딩으로 해석하므로
+# install.sh가 스스로 UTF-8을 고정하지 않으면 한글 레지스트리 값 이름이 깨진다.
+# 컨테이너 기본값을 UTF-8로 두면 이 회귀를 구조적으로 잡을 수 없다.
+LC_ALL=C LANG=C "$INSTALLER"
 
 echo
 echo "=============================================================="
 echo "==> 컨테이너 회귀 검증 결과"
 
 failures=0
+
+font_replacement_ok() {
+    WINEPREFIX="$KAKAOTALK_PREFIX" WINEDEBUG=-all \
+        /opt/wine-staging/bin/wine reg query \
+        'HKCU\Software\Wine\Fonts\Replacements' /v "$1" 2>/dev/null \
+        | grep -q "REG_SZ[[:space:]]*$2"
+}
 
 check() {
     local label="$1"
@@ -38,6 +48,8 @@ else
 fi
 
 check "NanumBarunGothic" test -f "$KAKAOTALK_PREFIX/drive_c/windows/Fonts/NanumBarunGothic.ttf"
+check "나눔고딕 → NanumGothic 매핑" font_replacement_ok '나눔고딕' NanumGothic
+check "맑은 고딕 → NanumBarunGothic 매핑" font_replacement_ok '맑은 고딕' NanumBarunGothic
 check "Program Files (x86) 설치 경로" test -f \
     "$KAKAOTALK_PREFIX/drive_c/Program Files (x86)/Kakao/KakaoTalk/KakaoTalk.exe"
 check "재시도 런처" test -x "$HOME/.local/bin/kakaotalk-wine"
