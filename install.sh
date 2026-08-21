@@ -15,7 +15,7 @@ export KAKAOTALK_PREFIX="${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}"
 export KAKAOTALK_CACHE="${KAKAOTALK_CACHE:-$HOME/.cache/kakaotalk-installer}"
 export KAKAOTALK_INSTALL_DESKTOP="${KAKAOTALK_INSTALL_DESKTOP:-1}"
 
-readonly KAKAOTALK_TOOLKIT_VERSION="1.0.0"
+readonly KAKAOTALK_TOOLKIT_VERSION="1.0.1"
 
 readonly FONT_REPLACEMENTS_KEY='HKCU\Software\Wine\Fonts\Replacements'
 
