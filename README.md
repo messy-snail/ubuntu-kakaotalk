@@ -2,7 +2,7 @@
 
 # ubuntu-kakaotalk
 
-**Ubuntu 24.04에서 Windows용 카카오톡을 WineHQ staging으로 실행하는 설치 자동화와 Docker 환경**
+**Ubuntu 24.04에서 Windows용 카카오톡을 WineHQ staging으로 실행하는 설치 자동화**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Release](https://img.shields.io/github/v/release/messy-snail/ubuntu-kakaotalk?color=blue)](https://github.com/messy-snail/ubuntu-kakaotalk/releases/latest)
@@ -19,53 +19,38 @@
 
 ---
 
-카카오톡은 (주)카카오의 독점 소프트웨어다. 이 저장소는 **설치와 실행을 자동화할 뿐** 카카오톡
-바이너리를 재배포하지 않으며 카카오와 아무런 관련이 없다.
+카카오톡은 (주)카카오의 독점 소프트웨어다. 이 저장소는 **설치와 실행을 자동화할 뿐**
+카카오톡 바이너리를 재배포하지 않으며 카카오와 아무런 관련이 없다.
 
-> [!WARNING]
-> `winetricks gdiplus`, `riched20`, `vcrun2019`를 설치하지 않는다. 이 DLL verb들은 채팅방
-> 백지 화면과 `Encountered an improper argument.` 오류를 일으킨다. 이 저장소는 글꼴 전용
-> `cjkfonts`만 사용한다.
+## 설치 방법 세 가지
 
-## 무엇을 해주나
+| | 방법 | 이런 사람에게 | 명령 |
+|---|---|---|---|
+| 🤖 | **에이전트에게 맡기기** | 터미널 작업을 대신 시키고 싶다 | 아래 프롬프트를 복사 |
+| 🔧 | **직접 설치** | 호스트에 바로 깔고 싶다 | `./install.sh` |
+| 📦 | **Docker** | 호스트를 안 건드리고 싶다 | `./docker/kakaotalk.sh build` |
 
-- **깨끗한 prefix 구성** — win64 + Windows 10 모드에 글꼴 전용 `cjkfonts`만 넣는다. 채팅
-  렌더링을 깨뜨리는 DLL verb는 처음부터 배제한다.
-- **나눔 글꼴 배선** — 호스트의 `fonts-nanum`에서 NanumGothic, NanumBarunGothic,
-  NanumMyeongjo를 prefix로 복사한 뒤 서로 다른 두 층위를 각각 설정한다. Wine이 Windows 글꼴
-  요청(`MS Shell Dlg`, `Segoe UI`, `맑은 고딕`)을 대신 그릴 때는 NanumBarunGothic을 쓰고,
-  카카오톡이 앱에서 고른 `나눔고딕`을 요청할 때는 NanumGothic으로 해석되게 한다. 전자는
-  `FontSubstitutes`와 `FontLink\SystemLink`, 후자는 `Fonts\Replacements`가 담당한다.
-- **설치 파일 자동 수급** — 카카오톡 설치파일을 공식 CDN에서 직접 받아
-  `~/.cache/kakaotalk-installer`에 캐시한다. Wine Gecko/Mono와 `cjkfonts`도 자동으로 받는다.
-- **무결성 검증** — Wine Gecko/Mono는 고정된 SHA-256으로 대조하고, 카카오톡 설치파일은 크기와
-  PE 헤더(`MZ`)를 확인한 뒤에만 실행한다. 설치파일은 CDN이 계속 갱신하므로 해시를 고정하지 않고
-  실제 값을 출력한다.
-- **기존 데이터 비파괴** — prefix를 삭제하거나 초기화하지 않는다. 금지 DLL이 이미 들어간
-  prefix는 억지로 수리하지 않고 중단한 뒤 새 경로 사용을 안내한다.
-- **데스크톱 통합** — 재시도 런처, `.exe`에서 추출한 256px 아이콘, 앱 및
-  `kakaoopen://` 프로토콜 desktop entry를 생성한다.
-- **자체 점검** — 설치 끝에 Wine 버전, prefix 모드, 금지 verb 부재, 글꼴, 본체, 런처,
-  데스크톱 통합을 전부 확인하고 하나라도 실패하면 오류로 끝낸다.
-- **Docker 실사용 이미지와 회귀 검증 환경** — 로그인·대화 데이터를 호스트에 영속시키는
-  실사용 이미지와, 깨끗한 컨테이너에서 `install.sh` 전체를 다시 돌리는 검증 환경을 함께 제공한다.
+어느 쪽이든 카카오톡 설치파일은 공식 CDN에서 자동으로 받고, 설치 마법사는 무인 모드로
+돌아간다. **`다음` 버튼을 누를 일은 없다.**
 
-## 검증 환경
+### 🤖 1. 에이전트에게 맡기기
 
-| 항목 | 값 |
-|---|---|
-| OS | Ubuntu 24.04.4 LTS (amd64 + i386) |
-| Wine | WineHQ staging 11.15, `/opt/wine-staging/bin/wine` |
-| Windows 모드 | Windows 10, win64 prefix |
-| winetricks | `cjkfonts`만 |
-| Gecko / Mono | 2.47.4 (x86, x86_64) / 11.2.0 (x86) |
-| KakaoTalk | 26.7.1.5263 |
-| 기본 prefix | `~/.wine-kakaotalk-clean` |
+![난이도: 가장 쉬움](https://img.shields.io/badge/%EB%82%9C%EC%9D%B4%EB%8F%84-%EA%B0%80%EC%9E%A5_%EC%89%AC%EC%9B%80-brightgreen) ![sudo: 에이전트가 실행](https://img.shields.io/badge/sudo-%EC%97%90%EC%9D%B4%EC%A0%84%ED%8A%B8%EA%B0%80_%EC%8B%A4%ED%96%89-blue)
 
-위 버전은 강제 pin이 아니라 **성공이 확인된 기준점**이다(검증일 2026-08-20). WineHQ staging은
-rolling 패키지이고 KakaoTalk CDN도 최신 installer로 바뀔 수 있으므로 이후 버전도 허용한다.
+Codex나 Claude Code 같은 코딩 에이전트에게 맡긴다. 저장소 루트에서 이렇게 요청한다.
 
-## 빠른 시작
+```text
+README.md와 KAKAOTALK_WINE_INSTALL.md를 읽고 ./install.sh로 설치해줘.
+sudo가 필요한 시스템 명령은 먼저 보여주고, 기존 Wine prefix는 삭제하지 마.
+끝나면 자체 점검 결과와 Display → Font → 나눔고딕 설정 필요 여부를 알려줘.
+```
+
+`install.sh`를 대신 돌려주는 것이라 결과물은 2번과 같다. 차이는 `sudo` 준비 단계까지
+에이전트가 처리해준다는 점이다.
+
+### 🔧 2. 직접 설치
+
+![난이도: 보통](https://img.shields.io/badge/%EB%82%9C%EC%9D%B4%EB%8F%84-%EB%B3%B4%ED%86%B5-yellow) ![sudo: 직접 실행](https://img.shields.io/badge/sudo-%EC%A7%81%EC%A0%91_%EC%8B%A4%ED%96%89-orange)
 
 ```bash
 git clone https://github.com/messy-snail/ubuntu-kakaotalk.git
@@ -73,98 +58,77 @@ cd ubuntu-kakaotalk
 ./install.sh
 ```
 
-카카오톡 설치파일, Wine Gecko/Mono, `cjkfonts`는 스크립트가 알아서 받는다. 미리 준비해야
-하는 건 apt 패키지뿐이다 — WineHQ staging, winetricks, `fonts-nanum` 계열 등. `sudo`가 필요한
-작업이라 스크립트가 대신 실행하지 않고, 빠진 게 있으면 필요한 명령을 출력하고 중단한다. 그
-명령을 직접 실행한 뒤 `./install.sh`를 다시 실행하면 된다. 전체 목록과 절차는
+미리 준비해야 하는 건 apt 패키지뿐이다 — WineHQ staging, winetricks, `fonts-nanum` 계열.
+`sudo`가 필요한 작업이라 스크립트가 대신 실행하지 않고, **빠진 게 있으면 필요한 명령을
+출력하고 멈춘다.** 그 명령을 실행한 뒤 `./install.sh`를 다시 돌리면 된다.
+
+Wine Gecko/Mono와 `cjkfonts`, 카카오톡 설치파일은 스크립트가 알아서 받는다. 절차 전문은
 [`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md)에 있다.
 
-Docker 경로에는 이 구분이 없다. 이미지 빌드 중에 `install.sh`가 그대로 실행되어 apt 패키지부터
-카카오톡 본체까지 전부 이미지 안에서 준비된다.
+### 📦 3. Docker
 
-실행:
-
-```bash
-~/.local/bin/kakaotalk-wine
-```
-
-데스크톱 환경의 앱 메뉴에서 `KakaoTalk`을 검색해도 같은 런처가 실행된다.
-
-## 필수 앱 설정
-
-> [!IMPORTANT]
-> 로그인 후 카카오톡에서 반드시 다음을 선택한다.
->
-> ```text
-> Settings → Display → Font → 나눔고딕
-> ```
->
-> `Settings → Chat`이 아니라 `Display` 탭이다. 이 설정 전에는 채팅 본문이 정상이어도
-> 입력창의 한글이 깨지거나 입력 직후 Wine이 멈출 수 있다.
-
-## Docker
+![난이도: 보통](https://img.shields.io/badge/%EB%82%9C%EC%9D%B4%EB%8F%84-%EB%B3%B4%ED%86%B5-yellow) ![격리: 호스트 무변경](https://img.shields.io/badge/%EA%B2%A9%EB%A6%AC-%ED%98%B8%EC%8A%A4%ED%8A%B8_%EB%AC%B4%EB%B3%80%EA%B2%BD-brightgreen)
 
 ```bash
 ./docker/kakaotalk.sh build
 ./docker/kakaotalk.sh run
 ```
 
-첫 실행에서 이미지의 prefix 템플릿을 `~/.local/share/kakaotalk-docker`로 복사하고, 이후
-실행부터 그 디렉터리를 그대로 사용한다. 로그인 세션과 대화 데이터는 이미지 밖에 남으므로
-`build`를 다시 해도 유지된다. 위의 **필수 앱 설정**은 Docker에서도 동일하게 적용해야 한다.
+apt 패키지까지 전부 이미지 안에서 준비되므로 `sudo` 단계가 없다. 대신 Docker daemon
+접근 권한이 필요하다. 로그인 세션과 대화 데이터는 이미지 밖
+`~/.local/share/kakaotalk-docker`에 남으므로 `build`를 다시 해도 유지된다.
 
-관리 명령(`shell`, `update`, `clean`)과 호스트 연동 방식은
-[`docker/README.md`](./docker/README.md)를 참고한다.
+자세한 내용은 [`docker/README.md`](./docker/README.md).
 
-## 회귀 검증
-
-```bash
-./test/docker-verify.sh build
-./test/docker-verify.sh run
-```
-
-깨끗한 Ubuntu 24.04 컨테이너에서 루트 `install.sh`를 처음부터 실행해 문서와 자동화가 같은
-절차를 유지하는지 확인한다. 호스트 Wine prefix는 마운트하지 않는다. 검사 항목과 제약은
-[`test/README.md`](./test/README.md)에 있다.
-
-## 환경변수
-
-| 이름 | 기본값 | 용도 |
-|---|---|---|
-| `KAKAOTALK_PREFIX` | `$HOME/.wine-kakaotalk-clean` | 설치·실행에 사용할 Wine prefix |
-| `KAKAOTALK_CACHE` | `$HOME/.cache/kakaotalk-installer` | KakaoTalk installer 캐시 |
-| `KAKAOTALK_INSTALL_DESKTOP` | `1` | `0`이면 아이콘과 desktop entry 생략 |
-| `KAKAOTALK_DOCKER_DATA` | `$HOME/.local/share/kakaotalk-docker` | Docker 영속 데이터 경로 |
-
-설치와 실행에 같은 값을 넘기면 prefix를 분리해 쓸 수 있다.
+## 실행
 
 ```bash
-KAKAOTALK_PREFIX="$HOME/.wine-kakaotalk-test" ./install.sh
-KAKAOTALK_PREFIX="$HOME/.wine-kakaotalk-test" ~/.local/bin/kakaotalk-wine
+~/.local/bin/kakaotalk-wine
 ```
+
+데스크톱 앱 메뉴에서 `KakaoTalk`을 검색해도 같은 런처가 뜬다. Docker는
+`./docker/kakaotalk.sh run`.
+
+## 필수 앱 설정
+
+> [!IMPORTANT]
+> 로그인한 뒤 카카오톡에서 반드시 다음을 선택한다.
+>
+> ```text
+> Settings → Display → Font → 나눔고딕
+> ```
+>
+> `Settings → Chat`이 아니라 `Display` 탭이다. 이 설정 전에는 채팅 본문이 정상이어도
+> 입력창의 한글이 깨지거나 입력 직후 Wine이 멈출 수 있다. 설치 경로와 무관하게 동일하다.
+
+## 알려진 이슈
+
+| 증상 | 원인 |
+|---|---|
+| 채팅방 백지 + `Encountered an improper argument.` 반복 | winetricks `gdiplus`·`riched20`·`vcrun2019`. 이 저장소는 넣지 않는다 |
+| 입력창 한글만 깨짐 | 위 **필수 앱 설정** 미적용 |
+| Docker 설치인데 글꼴 매핑이 깨짐 | v1.0.0 이미지가 비 UTF-8 로케일로 빌드됨. v1.0.1에서 수정 |
+| 첫 실행이 `c0000409`로 즉시 종료 | 런처가 자동으로 최대 세 번 재시도한다 |
+
+> [!WARNING]
+> `winetricks gdiplus`, `riched20`, `vcrun2019`를 설치하지 않는다. 채팅방 백지 화면의
+> 직접 원인이다. 이 저장소는 글꼴 전용 `cjkfonts`만 쓴다.
+
+진단 명령, 복구 절차, 조사 중 **기각된 가설**(Wine 빌드, GPU, DLL override, WIC, WebView2
+등)은 [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md)에 정리되어 있다.
 
 ## 문서
 
 | 문서 | 언제 읽나 |
 |---|---|
-| [`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md) | 설치 절차 전체, `sudo` 명령, 자체 확인 방법을 손으로 따라갈 때 |
-| [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) | 백지 화면, 한글 깨짐, `c0000409`, GPU·오디오·입력기 문제가 났을 때 |
-| [`docker/README.md`](./docker/README.md) | Docker로 실사용할 때, 영속 데이터와 호스트 연동을 볼 때 |
-| [`test/README.md`](./test/README.md) | 변경 후 깨끗한 환경에서 회귀 검증할 때 |
-| [`CHANGELOG.md`](./CHANGELOG.md) | 릴리즈 간 변경점을 확인할 때 |
+| [`KAKAOTALK_WINE_INSTALL.md`](./KAKAOTALK_WINE_INSTALL.md) | 설치 절차를 손으로 따라가거나 환경변수를 바꿀 때 |
+| [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md) | 문제가 났을 때 |
+| [`docker/README.md`](./docker/README.md) | Docker로 쓸 때 |
+| [`test/README.md`](./test/README.md) | 코드를 고친 뒤 회귀 검증할 때 |
+| [`CHANGELOG.md`](./CHANGELOG.md) | 릴리즈 간 변경점 |
 
-`TROUBLESHOOTING.md`에는 원인 분석 중 **기각된 가설**(Wine 빌드, GPU, DLL override, WIC,
-WebView2 등)도 기록되어 있다. 같은 길을 다시 파기 전에 먼저 확인하면 좋다.
-
-## 에이전트에게 설치 맡기기
-
-Codex나 Claude Code 같은 코딩 에이전트에게 맡길 수 있다. 저장소 루트에서 다음 요청을 쓴다.
-
-```text
-README.md와 KAKAOTALK_WINE_INSTALL.md를 읽고 ./install.sh로 설치해줘.
-sudo가 필요한 시스템 명령은 먼저 보여주고, 기존 Wine prefix는 삭제하지 마.
-끝나면 자체 점검 결과와 Display → Font → 나눔고딕 설정 필요 여부를 알려줘.
-```
+검증 기준점은 Ubuntu 24.04.4 LTS + WineHQ staging 11.15 + KakaoTalk 26.7.1.5263이다
+(2026-08-21 재검증). 강제 pin이 아니라 성공이 확인된 조합이며 이후 버전도 허용한다.
 
 ## 기여
 
@@ -180,8 +144,8 @@ grep -m1 '"ProductName"=' "${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}/syst
 [commitizen](https://commitizen-tools.github.io/commitizen/)으로 관리한다.
 
 ```bash
-uv run --no-project cz commit          # 커밋 작성
-shellcheck -x install.sh docker/*.sh test/*.sh   # CI와 동일한 린트
+uv run --no-project cz commit                     # 커밋 작성
+shellcheck -x install.sh docker/*.sh test/*.sh    # CI와 동일한 린트
 ```
 
 ## 라이선스 및 고지
