@@ -3,11 +3,21 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Wine은 명령줄 인자를 현재 로케일 인코딩으로 해석한다. C/POSIX 로케일에서는 한글
+# 레지스트리 값 이름(맑은 고딕, 나눔고딕)이 깨진 채로 기록된다. 호출자가 이미 UTF-8이면
+# 그대로 두고, 그 외에는 C.UTF-8을 강제한다.
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+    *[Uu][Tt][Ff]-8|*[Uu][Tt][Ff]8) ;;
+    *) export LC_ALL=C.UTF-8 ;;
+esac
+
 export KAKAOTALK_PREFIX="${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}"
 export KAKAOTALK_CACHE="${KAKAOTALK_CACHE:-$HOME/.cache/kakaotalk-installer}"
 export KAKAOTALK_INSTALL_DESKTOP="${KAKAOTALK_INSTALL_DESKTOP:-1}"
 
 readonly KAKAOTALK_TOOLKIT_VERSION="1.0.0"
+
+readonly FONT_REPLACEMENTS_KEY='HKCU\Software\Wine\Fonts\Replacements'
 
 readonly WINE_BIN="/opt/wine-staging/bin/wine"
 readonly WINEBOOT_BIN="/opt/wine-staging/bin/wineboot"
@@ -198,7 +208,6 @@ add_font_link() {
 
 configure_fonts() {
     local windows_fonts="$WINEPREFIX/drive_c/windows/Fonts"
-    local replacements='HKCU\Software\Wine\Fonts\Replacements'
     local substitutes='HKLM\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes'
     local fonts='HKLM\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
     local name
@@ -217,9 +226,9 @@ configure_fonts() {
         "$WINE_BIN" reg add "$substitutes" /v "$name" /d 'NanumBarunGothic' /f >/dev/null
     done
     for name in 'Segoe UI' 'Malgun Gothic' '맑은 고딕'; do
-        "$WINE_BIN" reg add "$replacements" /v "$name" /d 'NanumBarunGothic' /f >/dev/null
+        "$WINE_BIN" reg add "$FONT_REPLACEMENTS_KEY" /v "$name" /d 'NanumBarunGothic' /f >/dev/null
     done
-    "$WINE_BIN" reg add "$replacements" /v '나눔고딕' /d 'NanumGothic' /f >/dev/null
+    "$WINE_BIN" reg add "$FONT_REPLACEMENTS_KEY" /v '나눔고딕' /d 'NanumGothic' /f >/dev/null
 
     for name in 'Arial' 'Courier New' 'Lucida Sans Unicode' 'Microsoft Sans Serif' \
         'MS Shell Dlg' 'MS Shell Dlg 2' 'Segoe UI' 'Tahoma' 'Times New Roman'; do
@@ -368,6 +377,14 @@ EOF
     fi
 }
 
+check_font_replacement() {
+    local requested="$1"
+    local expected="$2"
+
+    "$WINE_BIN" reg query "$FONT_REPLACEMENTS_KEY" /v "$requested" 2>/dev/null \
+        | grep -q "REG_SZ[[:space:]]*$expected"
+}
+
 # self_check는 "조건 && [OK] 출력 || { [FAIL] 출력; 카운트 }" 패턴을 의도적으로 쓴다.
 # echo가 실패하는 경우는 없으므로 SC2015의 A && B || C 경고는 여기서 오탐이다.
 # shellcheck disable=SC2015
@@ -401,6 +418,14 @@ self_check() {
     grep -q '"MS Shell Dlg"="NanumBarunGothic"' "$WINEPREFIX/system.reg" \
         && echo "    [OK] 글꼴 레지스트리" \
         || { echo "    [FAIL] 글꼴 레지스트리"; failures=$((failures + 1)); }
+
+    # 한글 값 이름은 비 UTF-8 로케일에서 깨져 기록되므로 실제 매핑까지 확인한다.
+    check_font_replacement '나눔고딕' 'NanumGothic' \
+        && echo "    [OK] 나눔고딕 → NanumGothic" \
+        || { echo "    [FAIL] 나눔고딕 → NanumGothic (로케일 인코딩 확인)"; failures=$((failures + 1)); }
+    check_font_replacement '맑은 고딕' 'NanumBarunGothic' \
+        && echo "    [OK] 맑은 고딕 → NanumBarunGothic" \
+        || { echo "    [FAIL] 맑은 고딕 → NanumBarunGothic (로케일 인코딩 확인)"; failures=$((failures + 1)); }
 
     if kakao_exe="$(find_kakaotalk_exe)"; then
         echo "    [OK] $kakao_exe"

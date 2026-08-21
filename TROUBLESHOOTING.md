@@ -27,6 +27,33 @@ Settings → Display → Font → 나눔고딕
 
 `Settings → Chat`이 아니라 `Display` 탭이다.
 
+## 한글 글꼴 매핑이 깨진 prefix
+
+Wine은 명령줄 인자를 현재 로케일 인코딩으로 해석한다. 비 UTF-8 로케일(`C`, `POSIX`)에서
+설치하면 한글 레지스트리 값 이름이 깨진 채로 기록된다. v1.0.0 Docker 이미지가 여기에
+해당한다.
+
+```bash
+WINEPREFIX="${KAKAOTALK_PREFIX:-$HOME/.wine-kakaotalk-clean}" \
+  /opt/wine-staging/bin/wine reg query \
+  'HKCU\Software\Wine\Fonts\Replacements' /v '나눔고딕'
+```
+
+`NanumGothic`이 나오지 않으면 깨진 prefix다. 깨진 값은 이런 모양으로 남는다.
+
+```text
+"k\2\30k\b\24j3 k\24\25"="NanumGothic"
+```
+
+호스트는 `./install.sh`를 다시 실행하면 멱등하게 복구된다. Docker는 이미지부터 다시
+빌드해야 한다. 사용자 데이터는 이미지 밖에 있으므로 유지된다.
+
+```bash
+./docker/kakaotalk.sh build
+```
+
+깨진 값 이름 자체는 남아 있어도 무해하다. 정리하려면 prefix를 새로 만든다.
+
 ## 첫 실행 `c0000409`
 
 `wineserver -k` 직후 첫 실행이 간헐적으로 종료될 수 있다. 저장소의 런처는 시작 후 15초

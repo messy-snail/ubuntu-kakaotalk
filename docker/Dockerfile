@@ -45,7 +45,11 @@ RUN chmod +x /usr/local/lib/kakaotalk/install.sh \
              /usr/local/bin/kakaotalk-entrypoint
 
 USER kakao
-ENV HOME=/home/kakao
+# install.sh는 한글 레지스트리 값 이름을 기록한다. 이미지 빌드 단계에서 UTF-8 로케일이
+# 아니면 그 값이 깨진 채로 prefix 템플릿에 굳어지므로 설치 전에 먼저 고정한다.
+ENV HOME=/home/kakao \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
 WORKDIR /home/kakao
 
 RUN xvfb-run -a env \
@@ -64,8 +68,6 @@ USER kakao
 ENV WINEPREFIX=/home/kakao/.wine-kakaotalk \
     WINEARCH=win64 \
     WINEDEBUG=-all \
-    LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
     XMODIFIERS=@im=ibus
 
 ENTRYPOINT ["/usr/local/bin/kakaotalk-entrypoint"]

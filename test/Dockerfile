@@ -41,6 +41,8 @@ RUN chmod +x /usr/local/lib/kakaotalk/install.sh \
              /home/kakao/container-install.sh
 
 USER kakao
+# 이 UTF-8 로케일은 검증 마지막의 GUI 실행용이다. install.sh 자체는
+# container-install.sh가 일부러 LC_ALL=C로 호출해 로케일 회귀를 잡는다.
 ENV HOME=/home/kakao \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
