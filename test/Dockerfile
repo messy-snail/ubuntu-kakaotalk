@@ -40,6 +40,11 @@ RUN chmod +x /usr/local/lib/kakaotalk/install.sh \
              /usr/local/lib/kakaotalk/tools/extract-exe-icon.py \
              /home/kakao/container-install.sh
 
+# docker-verify.sh가 캐시 볼륨을 마운트할 때 Docker가 없는 부모 디렉터리를 root 소유로
+# 만들어버려 winetricks가 ~/.cache 아래에 쓰지 못한다. 미리 kakao 소유로 만들어 둔다.
+RUN mkdir -p /home/kakao/.cache/kakaotalk-installer /home/kakao/.cache/wine \
+ && chown -R kakao: /home/kakao/.cache
+
 USER kakao
 # 이 UTF-8 로케일은 검증 마지막의 GUI 실행용이다. install.sh 자체는
 # container-install.sh가 일부러 LC_ALL=C로 호출해 로케일 회귀를 잡는다.
